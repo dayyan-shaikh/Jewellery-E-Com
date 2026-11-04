@@ -11,6 +11,7 @@ const productRoutes = require("./routes/productRoutes");
 const priceCalculationRoutes = require("./routes/priceCalculationRoutes");
 const priceLockRoutes = require("./routes/priceLockRoutes");
 const cartRoutes = require("./routes/cartRoutes");
+const checkoutRoutes = require("./routes/checkoutRoutes");
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/pricing", priceCalculationRoutes);
 app.use("/api/price-locks", priceLockRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/checkout", checkoutRoutes);
 
 // Health check API
 app.get("/api/health", (req, res) => {

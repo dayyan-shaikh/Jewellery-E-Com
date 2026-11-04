@@ -18,14 +18,26 @@ const addToCart = async (sessionId, lockId, quantity) => {
     await client.query("BEGIN");
 
     // Validate price lock
+    // Validate price lock and prevent reuse
     const lockResult = await client.query(
-      `SELECT *
-       FROM price_locks
-       WHERE id = $1
-         AND session_id = $2
-         AND status = 'ACTIVE'
-         AND expires_at > NOW()
-       FOR UPDATE`,
+      `
+    SELECT *
+    FROM price_locks
+    WHERE id = $1
+      AND session_id = $2
+      AND status = 'ACTIVE'
+      AND expires_at > NOW()
+
+      AND NOT EXISTS (
+        SELECT 1
+        FROM cart_items ci
+        JOIN carts c ON c.id = ci.cart_id
+        WHERE ci.price_lock_id = price_locks.id
+          AND c.status = 'CONVERTED'
+      )
+
+    FOR UPDATE
+  `,
       [lockId, sessionId]
     );
 
@@ -601,6 +613,6 @@ module.exports = {
   addToCart,
   getCart,
   confirmCartItemPrice,
-    updateCartItemQuantity,
-    removeCartItem
+  updateCartItemQuantity,
+  removeCartItem
 };
