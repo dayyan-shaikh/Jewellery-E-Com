@@ -3,7 +3,7 @@ const cartService = require("../services/cartService");
 
 const addToCart = async (req, res) => {
   try {
-    const sessionId = req.get("x-session-id");
+    const sessionId = req.customerSessionId || req.get("x-session-id");
     const { lockId, quantity = 1 } = req.body;
 
     if (!sessionId) {
@@ -65,7 +65,7 @@ const addToCart = async (req, res) => {
 // GET CART
 const getCartDetails = async (req, res) => {
   try {
-    const sessionId = req.get("x-session-id");
+    const sessionId = req.customerSessionId || req.get("x-session-id");
 
     if (
       !sessionId ||
@@ -107,7 +107,7 @@ const getCartDetails = async (req, res) => {
 // CONFIRM INCREASED CART PRICE
 const confirmCartItemPrice = async (req, res) => {
   try {
-    const sessionId = req.get("x-session-id");
+    const sessionId = req.customerSessionId || req.get("x-session-id");
     const { id } = req.params;
 
     if (
@@ -172,7 +172,7 @@ const confirmCartItemPrice = async (req, res) => {
 
 const updateCartItem = async (req, res) => {
   try {
-    const sessionId = req.get("x-session-id");
+    const sessionId = req.customerSessionId || req.get("x-session-id");
     const cartItemId = Number(req.params.id);
     const { quantity } = req.body;
 

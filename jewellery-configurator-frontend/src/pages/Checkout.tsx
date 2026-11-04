@@ -10,7 +10,7 @@ export default function Checkout() {
   const [error, setError] = useState('')
   const navigate = useNavigate()
   const total = cart.reduce((sum, item) => sum + item.quote.total * item.quantity, 0)
-  const blocked = cart.length === 0 || cart.some(item => item.status !== 'CONFIRMED' || new Date(item.quote.expiresAt).getTime() <= Date.now() || item.product.stock < item.quantity)
+  const blocked = cart.length === 0 || cart.some(item => item.status !== 'CONFIRMED' || new Date(item.quote.expiresAt).getTime() <= Date.now() || item.stockAvailable < item.quantity)
   const placeOrder = async () => {
     setBusy(true); setError('')
     try {

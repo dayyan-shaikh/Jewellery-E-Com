@@ -3,7 +3,7 @@ const priceLockService = require("../services/priceLockService");
 const createPriceLock = async (req, res) => {
   try {
     const { variantId } = req.body;
-    const sessionId = req.get("x-session-id");
+    const sessionId = req.customerSessionId || req.get("x-session-id");
 
     // Validate session ID
     if (
@@ -62,7 +62,7 @@ const createPriceLock = async (req, res) => {
 const getPriceLock = async (req, res) => {
   try {
     const { id } = req.params;
-    const sessionId = req.get("x-session-id");
+    const sessionId = req.customerSessionId || req.get("x-session-id");
 
     if (!/^\d+$/.test(id) || Number(id) <= 0) {
       return res.status(400).json({
@@ -111,7 +111,7 @@ const getPriceLock = async (req, res) => {
 const refreshPriceLock = async (req, res) => {
   try {
     const { id } = req.params;
-    const sessionId = req.get("x-session-id");
+    const sessionId = req.customerSessionId || req.get("x-session-id");
 
     if (!/^\d+$/.test(id) || Number(id) <= 0) {
       return res.status(400).json({
@@ -157,7 +157,7 @@ const refreshPriceLock = async (req, res) => {
 const confirmPriceLock = async (req, res) => {
   try {
     const { id } = req.params;
-    const sessionId = req.get("x-session-id");
+    const sessionId = req.customerSessionId || req.get("x-session-id");
 
     if (!/^\d+$/.test(id) || Number(id) <= 0) {
       return res.status(400).json({

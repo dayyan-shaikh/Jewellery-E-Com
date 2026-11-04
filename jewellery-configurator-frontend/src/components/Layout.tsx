@@ -1,9 +1,11 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { ArrowUpRight, Instagram, ShoppingBag } from 'lucide-react'
 import { useStore } from '../store/Store'
+import { useAuth } from '../auth'
 
 export default function Layout() {
   const { cart } = useStore()
+  const { user, logout } = useAuth()
   const count = cart.reduce((sum, item) => sum + item.quantity, 0)
   return <>
     <div className="announcement">A considered collection. Crafted to be kept. <span>Complimentary insured delivery on every order</span></div>
@@ -15,7 +17,7 @@ export default function Layout() {
         <a href="/#craft">Our craft</a>
       </nav>
       <div className="header-actions">
-        <span className="header-note">Made with intention</span>
+        {user ? <><span className="header-note">{user.name}</span><button className="bag-link" onClick={() => void logout()}>Sign out</button></> : <Link className="header-note" to="/login">Sign in</Link>}
         <Link to="/cart" className="bag-link" aria-label="Shopping bag"><ShoppingBag size={19} /><span>Bag ({count})</span></Link>
       </div>
     </header>

@@ -18,8 +18,11 @@ export interface Product {
   stoneCost: number
   stock: number
   imageUrl: string
+  variants: Variant[]
   tag?: string
 }
+
+export interface Variant { id: string; sku: string; purity: string; weightGrams: number; stoneCharge: number; stock: number }
 
 export interface Quote {
   id: string
@@ -37,6 +40,7 @@ export interface Quote {
   total: number
   createdAt: string
   expiresAt: string
+  variantId: string
 }
 
 export interface CartItem {
@@ -47,6 +51,8 @@ export interface CartItem {
   status: CartStatus
   previousTotal?: number
   priceChange?: QuoteChange
+  priceDelta: number
+  stockAvailable: number
 }
 
 export interface Order {
@@ -54,4 +60,6 @@ export interface Order {
   orderNumber: string
   total: number
   createdAt: string
+  status: string
+  items: Array<{ productName: string; quantity: number; total: number }>
 }

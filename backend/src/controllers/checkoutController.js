@@ -2,7 +2,7 @@ const checkoutService = require("../services/checkoutService");
 
 const checkout = async (req, res) => {
   try {
-    const sessionId = req.get("x-session-id");
+    const sessionId = req.customerSessionId || req.get("x-session-id");
     const idempotencyKey = req.get("Idempotency-Key");
 
     // Validate session ID

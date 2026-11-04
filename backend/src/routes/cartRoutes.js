@@ -9,6 +9,9 @@ const {
     updateCartItem,
     removeCartItem
 } = require("../controllers/cartController");
+const { authenticateToken, authorizeRoles, bindCustomerCartSession } = require("../middleware/auth");
+
+router.use(authenticateToken, authorizeRoles("customer"), bindCustomerCartSession);
 
 router.post("/items", addToCart);
 

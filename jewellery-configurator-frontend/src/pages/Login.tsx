@@ -1,0 +1,14 @@
+import { useState } from 'react'
+import type { FormEvent } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { ArrowRight, Gem, ShieldCheck } from 'lucide-react'
+import { useAuth } from '../auth'
+import '../auth.css'
+
+export default function Login() {
+  const { login } = useAuth(); const navigate = useNavigate(); const location = useLocation()
+  const [email,setEmail]=useState(''); const [password,setPassword]=useState(''); const [error,setError]=useState(''); const [busy,setBusy]=useState(false)
+  const state=location.state as {from?:{pathname?:string};registered?:boolean}|null
+  const submit=async(event:FormEvent)=>{event.preventDefault();setBusy(true);setError('');try{await login(email,password,'customer');navigate(state?.from?.pathname||'/',{replace:true})}catch(e){setError(e instanceof Error?e.message:'Unable to sign in.')}finally{setBusy(false)}}
+  return <main className="store-auth-page"><section className="store-auth-art"><Link to="/" className="store-auth-brand"><span>MAISON</span><b>AURELIA</b><small>FINE JEWELLERY</small></Link><div className="store-auth-art-copy"><span>MADE TO BECOME YOURS</span><h1>Keep what<br/><em>matters.</em></h1><p>Your private space for considered pieces, thoughtful details and a price held just for you.</p></div><div className="store-auth-art-foot"><ShieldCheck size={16}/><span>Secure sign in · Your details stay private</span></div><div className="store-auth-gem"><i/><i/><i/></div></section><section className="store-auth-main"><div className="store-auth-card"><Link to="/" className="store-auth-back">← &nbsp; BACK TO THE COLLECTION</Link><div className="store-auth-mobile-mark"><Gem size={19}/><span>MAISON AURELIA</span></div><span className="store-auth-kicker">YOUR MAISON ACCOUNT</span><h2>Welcome<br/><em>back.</em></h2><p className="store-auth-subtitle">Sign in to continue with your collection.</p>{state?.registered&&<div className="store-auth-success">Your account is ready. Sign in to continue.</div>}{error&&<div className="store-auth-error" role="alert">{error}</div>}<form className="store-auth-form" onSubmit={submit}><label>Email address<input type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com"/></label><label>Password<input type="password" autoComplete="current-password" required value={password} onChange={e=>setPassword(e.target.value)} placeholder="Enter your password"/></label><button disabled={busy}>{busy?'SIGNING YOU IN…':<>SIGN IN <ArrowRight size={16}/></>}</button></form><p className="store-auth-switch">New to Maison Aurelia? <Link to="/register">Create an account</Link></p><div className="store-auth-assurance"><span><i/> PRIVATE ACCOUNT</span><span>MAISON AURELIA · INDIA</span></div></div></section></main>
+}

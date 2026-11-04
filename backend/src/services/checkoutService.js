@@ -265,6 +265,10 @@ const checkout = async (sessionId, idempotencyKey) => {
                 throw new Error("INVALID_PRICE_LOCK");
             }
 
+            if (item.price_status === "PRICE_INCREASED_PENDING" || item.lock_status === "PENDING_CONFIRMATION") {
+                throw new Error("PRICE_CONFIRMATION_REQUIRED");
+            }
+
             if (
                 item.lock_status !== "ACTIVE" ||
                 new Date(item.expires_at).getTime() <= Date.now()
@@ -278,6 +282,10 @@ const checkout = async (sessionId, idempotencyKey) => {
                     "PRICE_DECREASED",
                 ].includes(item.price_status)
             ) {
+                if (item.price_status === "OUT_OF_STOCK") {
+                    throw new Error("INSUFFICIENT_STOCK");
+                }
+
                 if (item.price_status === "PRICE_INCREASED_PENDING") {
                     throw new Error("PRICE_CONFIRMATION_REQUIRED");
                 }
@@ -364,13 +372,8 @@ const checkout = async (sessionId, idempotencyKey) => {
             const latestPrice = new Decimal(price.total_price);
             const lockedPrice = new Decimal(item.locked_unit_price);
 
-            // Customer must not be charged more than
-            // the accepted locked price.
-            if (latestPrice.greaterThan(lockedPrice)) {
-                throw new Error("PRICE_CHANGED_CONFIRMATION_REQUIRED");
-            }
-
-            // Customer benefits from a lower current price.
+            // A valid lock protects the customer from increases through
+            // checkout. Any lower live price is passed through automatically.
             const payableUnitPrice = latestPrice.lessThan(lockedPrice)
                 ? latestPrice
                 : lockedPrice;

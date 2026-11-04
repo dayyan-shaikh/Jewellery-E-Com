@@ -24,8 +24,8 @@ export default function Home() {
     <section className="intro-strip"><span>01 — A MORE PERSONAL KIND OF LUXURY</span><p>Made to mark a moment.<br/><em>Made to outlast it.</em></p><span>CRAFTED WITH INTENTION</span></section>
     <section className="collection-section" id="collection">
       <div className="section-heading"><div><span className="eyebrow">THE COLLECTION · 2026</span><h2>Pieces with <em>presence.</em></h2></div><p>Every detail has a purpose.<br/>Every piece, a point of view.</p></div>
-      {error && <div className="notice notice-error">{error} — showing available collection data.</div>}
-      {loading ? <div className="loading-state">Preparing the collection…</div> : <div className="product-grid">{products.map(product => <ProductCard key={product.id} product={product}/>)}</div>}
+      {error && <div className="notice notice-error">{error}</div>}
+      {loading ? <div className="loading-state">Preparing the collection…</div> : products.length ? <div className="product-grid">{products.map(product => <ProductCard key={product.id} product={product}/>)}</div> : <div className="empty-state"><h2>The collection is being prepared.</h2><p>There are no active products to display right now.</p></div>}
       <div className="collection-note"><Sparkles size={16}/><span>Each piece is made with care. Your final price is calculated from the live metal rate and held for ten minutes.</span></div>
     </section>
     <section className="craft-banner">

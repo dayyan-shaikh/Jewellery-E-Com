@@ -13,5 +13,6 @@ export default function Countdown({ expiresAt, onExpire }: { expiresAt: string; 
   const totalSeconds = Math.ceil(remaining / 1000)
   const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0')
   const seconds = (totalSeconds % 60).toString().padStart(2, '0')
-  return <span className={`countdown ${remaining < 60 ? 'countdown--urgent' : ''}`}><Clock3 size={14} /> {remaining === 0 ? 'Price lock expired' : `Price locked ${minutes}:${seconds}`}</span>
+  const expiryLabel = new Date(expiresAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+  return <span className={`countdown ${remaining < 60 ? 'countdown--urgent' : ''}`} title={`Expires ${expiryLabel}`}><Clock3 size={14} /> {remaining === 0 ? 'Price lock expired' : `Price locked ${minutes}:${seconds} · expires ${expiryLabel}`}</span>
 }

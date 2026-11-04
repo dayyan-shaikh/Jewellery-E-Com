@@ -9,7 +9,7 @@ const products: Product[] = [
     category: 'Rings', metal: 'gold', purities: ['18K', '22K'], defaultPurity: '18K',
     weightOptions: [3.5, 4, 4.5, 5], defaultWeight: 4, wastagePercent: 5, makingChargePerGram: 850,
     stoneCost: 0, stock: 3, tag: 'Bestseller',
-    imageUrl: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=1000&q=85',
+    imageUrl: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=1000&q=85', variants: [],
   },
   {
     id: 'celeste-earrings', name: 'Celeste Diamond Studs', subtitle: 'Light, held in its finest form',
@@ -17,7 +17,7 @@ const products: Product[] = [
     category: 'Earrings', metal: 'gold', purities: ['18K', '22K'], defaultPurity: '18K',
     weightOptions: [2.5, 3, 3.5, 4], defaultWeight: 3, wastagePercent: 4, makingChargePerGram: 1100,
     stoneCost: 12500, stock: 2, tag: 'With diamonds',
-    imageUrl: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=1000&q=85',
+    imageUrl: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=1000&q=85', variants: [],
   },
   {
     id: 'atelier-band', name: 'The Atelier Band', subtitle: 'Pure form. Lasting meaning.',
@@ -25,7 +25,7 @@ const products: Product[] = [
     category: 'Bands', metal: 'platinum', purities: ['950'], defaultPurity: '950',
     weightOptions: [5, 5.5, 6, 6.5], defaultWeight: 6, wastagePercent: 3, makingChargePerGram: 1250,
     stoneCost: 0, stock: 1, tag: 'Only one available',
-    imageUrl: 'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?auto=format&fit=crop&w=1000&q=85',
+    imageUrl: 'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?auto=format&fit=crop&w=1000&q=85', variants: [],
   },
 ]
 const rates = { gold: 6900, silver: 82, platinum: 3100 }
@@ -43,7 +43,7 @@ export function demoQuote(productId: string, purity: string, weightGrams: number
   const subtotal = metalValue + wastage + makingCharges + p.stoneCost
   const gst = subtotal * 0.03
   return Promise.resolve({
-    id: `demo-${crypto.randomUUID()}`, productId, purity, weightGrams, currency: 'INR',
+    id: `demo-${crypto.randomUUID()}`, productId, variantId: '', purity, weightGrams, currency: 'INR',
     metalRatePerGram: rate, metalValue, wastage, makingCharges, stoneCost: p.stoneCost,
     subtotal, gst, total: subtotal + gst, createdAt: now().toISOString(), expiresAt: expiry(),
   })
@@ -52,7 +52,7 @@ export async function demoAdd(productId: string, quote: Quote) {
   const p = products.find(x => x.id === productId) || products[0]
   const existing = cart.find(x => x.product.id === productId && x.quote.purity === quote.purity && x.quote.weightGrams === quote.weightGrams)
   if (existing) { existing.quantity += 1; return existing }
-  const item: CartItem = { id: crypto.randomUUID(), product: p, quantity: 1, quote, status: 'CONFIRMED' }
+  const item: CartItem = { id: crypto.randomUUID(), product: p, quantity: 1, quote, status: 'CONFIRMED', priceDelta: 0, stockAvailable: p.stock }
   cart = [...cart, item]
   return item
 }
@@ -85,7 +85,7 @@ export function demoCheckout(): Promise<Order> {
   if (cart.some(x => x.status !== 'CONFIRMED')) throw new Error('Please resolve all price changes before checkout.')
   if (cart.some(x => x.product.stock < x.quantity)) throw new Error('One or more items are out of stock.')
   const total = cart.reduce((sum, item) => sum + item.quote.total * item.quantity, 0)
-  const order = { id: crypto.randomUUID(), orderNumber: `MA-${Math.floor(10000 + Math.random() * 89999)}`, total, createdAt: now().toISOString() }
+  const order = { id: crypto.randomUUID(), orderNumber: `MA-${Math.floor(10000 + Math.random() * 89999)}`, total, createdAt: now().toISOString(), status: 'PLACED', items: cart.map(item => ({ productName: item.product.name, quantity: item.quantity, total: item.quote.total * item.quantity })) }
   cart = []
   return Promise.resolve(order)
 }

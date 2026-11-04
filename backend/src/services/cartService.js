@@ -176,73 +176,99 @@ const addToCart = async (sessionId, lockId, quantity) => {
 // ==========================================
 
 const revalidateCart = async (sessionId) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await client.query(
+      `SELECT ci.id AS cart_item_id, ci.product_variant_id, ci.quantity,
+              ci.locked_unit_price, ci.price_status, pl.id AS price_lock_id,
+              pl.expires_at, pl.status AS lock_status, pv.stock_quantity
+       FROM carts c
+       JOIN cart_items ci ON ci.cart_id = c.id
+       JOIN product_variants pv ON pv.id = ci.product_variant_id
+       LEFT JOIN price_locks pl ON pl.id = ci.price_lock_id
+       WHERE c.session_id = $1 AND c.status = 'ACTIVE'
+       ORDER BY ci.id
+       FOR UPDATE OF ci, pv`,
+      [sessionId]
+    );
 
-  const result = await pool.query(
-    `SELECT
-       ci.id AS cart_item_id,
-       ci.product_variant_id,
-       ci.locked_unit_price,
-       ci.price_status,
-       pl.expires_at,
-       pl.status AS lock_status
+    for (const item of result.rows) {
+      const inStock = Number(item.stock_quantity) >= Number(item.quantity);
+      if (!inStock) {
+        await client.query(
+          `UPDATE cart_items SET price_status = 'OUT_OF_STOCK', updated_at = NOW() WHERE id = $1`,
+          [item.cart_item_id]
+        );
+        continue;
+      }
 
-     FROM carts c
+      const lockExpired = !item.expires_at || new Date(item.expires_at).getTime() <= Date.now() || !["ACTIVE", "PENDING_CONFIRMATION"].includes(item.lock_status);
+      const hasPendingLock = item.lock_status === "PENDING_CONFIRMATION" && !lockExpired;
+      const latestPrice = await calculateProductPrice(item.product_variant_id);
+      const current = new Decimal(latestPrice.price_breakdown.total_price);
+      const locked = new Decimal(item.locked_unit_price);
 
-     JOIN cart_items ci
-       ON ci.cart_id = c.id
+      // An already offered higher price stays available for the remainder of
+      // its own quote window; do not silently replace the customer's offer.
+      if (hasPendingLock && current.greaterThan(locked)) {
+        await client.query(
+          `UPDATE cart_items SET current_unit_price = $1, price_status = 'PRICE_INCREASED_PENDING', updated_at = NOW() WHERE id = $2`,
+          [current.toFixed(2), item.cart_item_id]
+        );
+        continue;
+      }
 
-     LEFT JOIN price_locks pl
-       ON pl.id = ci.price_lock_id
+      // If the market falls back to the accepted price before confirmation,
+      // replace the pending increase with an automatically accepted lower quote.
+      const pendingIncreaseFell = hasPendingLock && !current.greaterThan(locked);
+      if (!lockExpired && !pendingIncreaseFell) {
+        const status = current.lessThan(locked) ? "PRICE_DECREASED" : "LOCKED";
+        await client.query(
+          `UPDATE cart_items SET current_unit_price = $1, price_status = $2, updated_at = NOW() WHERE id = $3`,
+          [current.toFixed(2), status, item.cart_item_id]
+        );
+        continue;
+      }
 
-     WHERE c.session_id = $1
-       AND c.status = 'ACTIVE'`,
-    [sessionId]
-  );
+      // Expired items get their own replacement quote. A higher price is
+      // staged for customer approval; an equal or lower price is accepted.
+      const increased = current.greaterThan(locked);
+      const breakdown = latestPrice.price_breakdown;
+      const lockStatus = increased ? "PENDING_CONFIRMATION" : "ACTIVE";
+      const newLock = await client.query(
+        `INSERT INTO price_locks (
+           session_id, product_variant_id, metal_rate_id, rate_per_gram,
+           metal_cost, wastage_amount, making_charge, stone_charge, subtotal,
+           gst_amount, total_price, locked_at, expires_at, status
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+                   NOW(), NOW() + INTERVAL '10 minutes', $12)
+         RETURNING id`,
+        [sessionId, item.product_variant_id, breakdown.metal_rate_id,
+          breakdown.rate_per_gram, breakdown.metal_cost, breakdown.wastage_amount,
+          breakdown.making_charge, breakdown.stone_charge, breakdown.subtotal,
+          breakdown.gst_amount, breakdown.total_price, lockStatus]
+      );
 
-  for (const item of result.rows) {
-
-    const isExpired =
-      !item.expires_at ||
-      new Date(item.expires_at).getTime() <= Date.now() ||
-      item.lock_status !== "ACTIVE";
-
-    if (isExpired) {
-      continue;
+      if (item.price_lock_id) {
+        await client.query(`UPDATE price_locks SET status = 'REPLACED' WHERE id = $1 AND status IN ('ACTIVE', 'PENDING_CONFIRMATION', 'EXPIRED')`, [item.price_lock_id]);
+      }
+      await client.query(
+        `UPDATE cart_items
+         SET price_lock_id = $1, locked_unit_price = $2, current_unit_price = $2,
+             price_status = $3, updated_at = NOW()
+         WHERE id = $4`,
+        [newLock.rows[0].id, increased ? item.locked_unit_price : current.toFixed(2),
+          increased ? "PRICE_INCREASED_PENDING" : (current.lessThan(locked) ? "PRICE_DECREASED" : "LOCKED"),
+          item.cart_item_id]
+      );
     }
-
-    // Calculate latest product price
-    const latestPrice = await calculateProductPrice(
-      item.product_variant_id
-    );
-
-    const newPrice = new Decimal(
-      latestPrice.price_breakdown.total_price
-    );
-
-    const oldPrice = new Decimal(
-      item.locked_unit_price
-    );
-
-    let priceStatus = "LOCKED";
-
-    if (newPrice.greaterThan(oldPrice)) {
-      priceStatus = "PRICE_INCREASED_PENDING";
-    } else if (newPrice.lessThan(oldPrice)) {
-      priceStatus = "PRICE_DECREASED";
-    }
-
-    await pool.query(
-      `UPDATE cart_items
-       SET current_unit_price = $1,
-           price_status = $2,
-           updated_at = NOW()
-       WHERE id = $3`,
-      [
-        newPrice.toFixed(2),
-        priceStatus,
-        item.cart_item_id
-      ]
-    );
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
   }
 };
 
@@ -271,13 +297,21 @@ const getCart = async (sessionId) => {
 
       pl.expires_at AS price_lock_expires_at,
       pl.status AS lock_status,
+      pl.rate_per_gram AS lock_rate_per_gram,
+      pl.metal_cost AS lock_metal_cost,
+      pl.wastage_amount AS lock_wastage_amount,
+      pl.making_charge AS lock_making_charge,
+      pl.stone_charge AS lock_stone_charge,
+      pl.subtotal AS lock_subtotal,
+      pl.gst_amount AS lock_gst_amount,
 
       p.name AS product_name,
       p.metal_type,
 
       pv.sku,
       pv.purity,
-      pv.weight_grams
+      pv.weight_grams,
+      pv.stock_quantity
 
     FROM carts c
 
@@ -324,10 +358,10 @@ const getCart = async (sessionId) => {
     const isExpired =
       !row.price_lock_expires_at ||
       new Date(row.price_lock_expires_at).getTime() <= Date.now() ||
-      row.lock_status !== "ACTIVE";
+      !["ACTIVE", "PENDING_CONFIRMATION"].includes(row.lock_status);
 
     const payableUnitPrice =
-      row.price_status === "PRICE_DECREASED"
+      ["PRICE_DECREASED", "PRICE_INCREASED_PENDING"].includes(row.price_status)
         ? row.current_unit_price
         : row.locked_unit_price;
 
@@ -351,9 +385,17 @@ const getCart = async (sessionId) => {
       currentUnitPrice: row.current_unit_price,
       payableUnitPrice,
 
-      priceStatus: isExpired
+      stockQuantity: row.stock_quantity,
+      lockRatePerGram: row.lock_rate_per_gram,
+      lockMetalCost: row.lock_metal_cost,
+      lockWastageAmount: row.lock_wastage_amount,
+      lockMakingCharge: row.lock_making_charge,
+      lockStoneCharge: row.lock_stone_charge,
+      lockSubtotal: row.lock_subtotal,
+      lockGstAmount: row.lock_gst_amount,
+      priceStatus: row.price_status === "OUT_OF_STOCK" ? "OUT_OF_STOCK" : (isExpired
         ? "PRICE_EXPIRED"
-        : row.price_status,
+        : row.price_status),
 
       priceLockExpiresAt: row.price_lock_expires_at,
       priceLockExpired: isExpired,
@@ -411,7 +453,7 @@ const confirmCartItemPrice = async (sessionId, cartItemId) => {
     }
 
     if (
-      item.lock_status !== "ACTIVE" ||
+      item.lock_status !== "PENDING_CONFIRMATION" ||
       new Date(item.expires_at) <= new Date()
     ) {
       throw new Error("PRICE_LOCK_EXPIRED");
