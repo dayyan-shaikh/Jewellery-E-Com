@@ -5,8 +5,14 @@ const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/ap
 export const DEMO_MODE = import.meta.env.VITE_USE_DEMO_DATA !== 'false'
 const SESSION_KEY = 'maison-session-id'
 function sessionId() {
-  let id = localStorage.getItem(SESSION_KEY)
-  if (!id) { id = `maison_${crypto.randomUUID().replace(/-/g, '')}`; localStorage.setItem(SESSION_KEY, id) }
+  let id = sessionStorage.getItem(SESSION_KEY)
+  // Migrate the old shared guest cart once. New sessions are isolated per tab;
+  // signed-in customer IDs are also kept separately in localStorage by account.
+  if (!id) {
+    id = localStorage.getItem(SESSION_KEY) || `maison_${crypto.randomUUID().replace(/-/g, '')}`
+    sessionStorage.setItem(SESSION_KEY, id)
+    localStorage.removeItem(SESSION_KEY)
+  }
   return id
 }
 

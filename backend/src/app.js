@@ -30,7 +30,9 @@ app.use(cors({
     if (!origin || allowedOrigins.has(origin)) return callback(null, true);
     return callback(new Error("Origin is not allowed by CORS"));
   },
-  methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+  // Product edits use PUT; omitting it lets OPTIONS return 204 while the
+  // browser blocks the actual update request.
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "x-session-id", "Idempotency-Key"],
   credentials: false,
   maxAge: 600,

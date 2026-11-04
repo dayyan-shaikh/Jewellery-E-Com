@@ -344,6 +344,23 @@ const checkout = async (sessionId, idempotencyKey) => {
             throw new Error("PRODUCT_NOT_AVAILABLE");
         }
 
+        // A cart can contain more than one line for a variant (for example,
+        // after retries or old cart data). Validate its combined quantity,
+        // not each line against the same unconsumed stock value.
+        const requestedByVariant = new Map();
+        for (const item of cartItems) {
+            const variantId = Number(item.product_variant_id);
+            requestedByVariant.set(
+                variantId,
+                (requestedByVariant.get(variantId) || 0) + Number(item.quantity)
+            );
+        }
+        for (const [variantId, requestedQuantity] of requestedByVariant) {
+            if (stockMap.get(variantId) < requestedQuantity) {
+                throw new Error("INSUFFICIENT_STOCK");
+            }
+        }
+
         // --------------------------------------
         // F. Recalculate prices and validate stock
         // --------------------------------------
@@ -354,12 +371,6 @@ const checkout = async (sessionId, idempotencyKey) => {
         for (const item of cartItems) {
             const variantId = Number(item.product_variant_id);
             const quantity = Number(item.quantity);
-
-            const availableStock = stockMap.get(variantId);
-
-            if (availableStock < quantity) {
-                throw new Error("INSUFFICIENT_STOCK");
-            }
 
             const calculation = await calculatePriceWithClient(
                 client,
@@ -392,6 +403,23 @@ const checkout = async (sessionId, idempotencyKey) => {
                 unit_price: payableUnitPrice.toFixed(2),
                 total_price: itemTotal.toFixed(2),
             });
+        }
+
+        // Atomically consume each variant's total quantity before writing the
+        // order. Rows are already locked in sorted ID order. A competing
+        // checkout waits here and then fails if the last unit was consumed.
+        for (const variantId of variantIds) {
+            const requestedQuantity = requestedByVariant.get(variantId);
+            const stockUpdate = await client.query(
+                `UPDATE product_variants
+                 SET stock_quantity = stock_quantity - $1
+                 WHERE id = $2 AND stock_quantity >= $1
+                 RETURNING id`,
+                [requestedQuantity, variantId]
+            );
+            if (!stockUpdate.rowCount) {
+                throw new Error("INSUFFICIENT_STOCK");
+            }
         }
 
         // --------------------------------------
@@ -457,30 +485,6 @@ const checkout = async (sessionId, idempotencyKey) => {
             );
 
             createdOrderItems.push(result.rows[0]);
-        }
-
-        // --------------------------------------
-        // I. Deduct stock
-        // --------------------------------------
-
-        for (const item of orderItems) {
-            const stockUpdate = await client.query(
-                `
-        UPDATE product_variants
-        SET stock_quantity = stock_quantity - $1
-        WHERE id = $2
-          AND stock_quantity >= $1
-        RETURNING id, stock_quantity
-        `,
-                [
-                    item.quantity,
-                    item.product_variant_id,
-                ]
-            );
-
-            if (!stockUpdate.rows.length) {
-                throw new Error("INSUFFICIENT_STOCK");
-            }
         }
 
         // --------------------------------------

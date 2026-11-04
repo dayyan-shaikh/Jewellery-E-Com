@@ -53,6 +53,12 @@ For local UI development before the backend is ready, `VITE_USE_DEMO_DATA=true` 
 5. Checkout must be rejected by the backend if a quote is expired, a price increase is unconfirmed, stock is insufficient, or the inventory transaction fails.
 6. No payment gateway is implemented; the checkout endpoint creates an order as a simulated order placement.
 
+### Last-unit checkout
+
+A price lock protects the quoted price; it does not reserve inventory. Stock is checked and conditionally decremented inside the same database transaction that creates the order. When two customers check out the last unit concurrently, exactly one order succeeds; the other receives an insufficient-stock response. The first customer to select the product is not guaranteed priority unless inventory is explicitly reserved, which this assignment does not require.
+
+Run `npm test` from the backend folder to execute the PostgreSQL last-unit concurrency test. The test creates temporary product, cart, quote, and order records and removes them afterward.
+
 ## Suggested local workflow
 
 Start PostgreSQL and the backend on port 5000, then start this app on port 5173. Keep both terminals running. If using Vite's proxy instead of CORS, configure it in `vite.config.ts`; currently the API base URL is direct, so the backend should allow `http://localhost:5173` in CORS.

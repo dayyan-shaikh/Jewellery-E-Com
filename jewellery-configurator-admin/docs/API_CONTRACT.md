@@ -2,6 +2,23 @@
 
 Base URL: `http://localhost:5000/api` (overridable using `VITE_API_BASE_URL`).
 
+## Admin endpoints
+
+All `/admin/*` endpoints require `Authorization: Bearer <JWT>` for an admin user. The admin client sends this token for each request.
+
+- `GET /admin/summary` returns product, variant stock, metal-rate and order totals.
+- `GET /admin/products` returns product rows with their variants, including database IDs and active flags.
+- `POST /admin/products` creates one product and one or more variants in a transaction.
+- `PUT /admin/products/:id` updates schema-backed product and variant fields in a transaction.
+- `GET /admin/metal-rates` returns each metal/purity rate row.
+- `POST /admin/metal-rates` adds a unique metal/purity rate row.
+- `PATCH /admin/metal-rates/:id` updates a rate and marks its source as `ADMIN`.
+- `GET /admin/orders` returns read-only orders and their stored order items.
+
+Product writes map to `products` (`name`, `description`, `metal_type`, `wastage_percentage`, `making_charge_per_gram`, `has_stones`, `is_active`) and `product_variants` (`sku`, `purity`, `weight_grams`, `stone_charge`, `stock_quantity`, `is_active`). A variant can only be saved when a matching `(metal_type, purity)` rate exists. Updating product or rate data affects future storefront reads and quotes; existing price locks retain their stored price snapshot.
+
+The schema has no product category, image URL, or separate making-charge-rule table, so those fields are not presented as editable database values.
+
 The frontend service layer accepts either a direct response object or a `{ data: ... }` envelope. Field names below are the canonical frontend contract. If the backend differs, adapt `src/services/api.ts` rather than scattering mapping logic across components.
 
 ## Product

@@ -65,47 +65,42 @@ Admin routes (all pages are rendered inside the dedicated administration shell):
 
 | Page | URL |
 |---|---|
-| Overview dashboard | `http://localhost:5173/admin` |
-| Products | `http://localhost:5173/admin/products` |
-| Inventory | `http://localhost:5173/admin/inventory` |
-| Metal rates | `http://localhost:5173/admin/rates` |
-| Making charges | `http://localhost:5173/admin/making-charges` |
-| Orders | `http://localhost:5173/admin/orders` |
+| Overview dashboard | `http://localhost:5174/admin` |
+| Products | `http://localhost:5174/admin/products` |
+| Inventory | `http://localhost:5174/admin/inventory` |
+| Metal rates | `http://localhost:5174/admin/rates` |
+| Orders | `http://localhost:5174/admin/orders` |
 
-The default demo mode supplies sample catalogue, pricing rules, rates and example orders; the dashboard still verifies administrator access with the backend before it loads.
+The admin screens read and update PostgreSQL values through the authenticated backend. There is no demo-data fallback in the admin API adapter.
 
 The admin interface follows the Maison Aurelia storefront design system (ivory surfaces, dark-brown navigation, antique-gold accents, DM Sans and Playfair Display) and includes:
 
-- Overview dashboard with product, stock, making-charge and order summaries.
-- Product catalogue with search, product creation and product configuration editing.
-- Inventory view with low-stock / out-of-stock filters and stock adjustment.
-- Gold, silver and platinum reference-rate view with rate editing.
-- Making-charge rule management with create and edit flows.
-- Order register with order totals and placement dates.
+- Overview dashboard with live product, stock, rate and order totals.
+- Product editing for schema-backed name, description, metal, wastage, making charge, stone flag, active status and variants.
+- Inventory editing for real variant stock, purity, weight and stone charges.
+- Metal-rate editing by metal and purity.
+- Read-only order register from `orders` and `order_items`.
 - Responsive desktop and mobile navigation.
 
 ### Admin API integration
 
-The admin API adapter is in `src/services/adminApi.ts`. In demo mode (`VITE_USE_DEMO_DATA=true`, the default), the admin workspace is populated from the existing seeded products and keeps admin edits in memory for the current browser session.
-
-When `VITE_USE_DEMO_DATA=false`, the adapter expects these admin endpoints:
+The admin API adapter in `src/services/adminApi.ts` uses these authenticated endpoints:
 
 | Method | Endpoint | Purpose |
 |---|---|---|
 | GET | `/admin/products` | List products |
 | POST | `/admin/products` | Create a product |
-| PUT | `/admin/products/:id` | Update product configuration / stock |
+| PUT | `/admin/products/:id` | Update product fields and variants |
 | GET | `/admin/metal-rates` | Read metal rates |
-| PATCH | `/admin/metal-rates/:metal` | Update a metal reference rate |
-| GET | `/admin/making-charge-rules` | List making-charge rules |
-| POST | `/admin/making-charge-rules` | Create a making-charge rule |
-| PUT | `/admin/making-charge-rules/:id` | Update a making-charge rule |
+| POST | `/admin/metal-rates` | Add a metal/purity rate row |
+| PATCH | `/admin/metal-rates/:id` | Update one metal-and-purity rate row |
 | GET | `/admin/orders` | List orders |
+| GET | `/admin/summary` | Read dashboard totals |
 
-**Backend integration note:** JWT login and `/api/admin/access` are connected to the shared backend. The other admin CRUD routes above are still prospective; their screens remain demo-backed until those endpoints are implemented server-side. Do not turn off demo mode expecting those operations to work yet.
+There is no `category`, `image`, or making-charge-rules table in the supplied database schema, so the admin does not invent or persist those values. Making charges are edited on the product record, and rate rows are edited by purity. Product changes and metal-rate updates feed the existing public product and price-calculation endpoints; active price locks retain their stored snapshot.
 
 ### Authentication
 
 Customer accounts are created from the customer storefront at `/register`. The admin sign-in page links to `/setup` for the one-time first administrator account. The backend requires `ADMIN_SETUP_KEY` from its ignored `.env.local` and closes bootstrap after the first admin is created. Additional admin accounts must be provisioned with `npm run provision-admin`. Both portals store the short-lived bearer token in `sessionStorage`; a refresh restores the signed-in user through `/api/auth/me`, and sign out revokes the server session.
 
-The admin screens are UI and API-adapter work; they do not alter the customer pricing, quote-lock or checkout flows. In demo mode, changes are not persisted to PostgreSQL and are reset when the application reloads.
+The admin screens update the shared database. Customer checkout remains validated by the backend transaction.
