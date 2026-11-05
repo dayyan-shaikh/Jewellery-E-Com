@@ -20,8 +20,7 @@ export const adminApi={
   createProduct:(product:Omit<AdminProduct,'id'>)=>request<AdminProduct>('/admin/products',{method:'POST',body:JSON.stringify(product)}),
   updateProduct:(id:string,product:Omit<AdminProduct,'id'>)=>request<AdminProduct>(`/admin/products/${id}`,{method:'PUT',body:JSON.stringify(product)}),
   rates:()=>request<MetalRate[]>('/admin/metal-rates'),
-  createRate:(rate:{metalType:Metal;purity:string;ratePerGram:number;currency:string})=>request<MetalRate>('/admin/metal-rates',{method:'POST',body:JSON.stringify(rate)}),
-  updateRate:(id:string,ratePerGram:number)=>request<MetalRate>(`/admin/metal-rates/${id}`,{method:'PATCH',body:JSON.stringify({ratePerGram})}),
+  rateHistory:(limit=50)=>request<Array<{id:string;metal_type:Metal;purity:string;rate_per_gram:number|string;currency:string;source:string;provider_timestamp:string|null;recorded_at:string}>>(`/admin/metal-rates/history?limit=${limit}`),
   orders:()=>request<AdminOrder[]>('/admin/orders'),
 }
 export const money=(value:number)=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2}).format(value)

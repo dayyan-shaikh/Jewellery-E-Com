@@ -255,10 +255,11 @@ const revalidateCart = async (sessionId) => {
       }
       await client.query(
         `UPDATE cart_items
-         SET price_lock_id = $1, locked_unit_price = $2, current_unit_price = $2,
-             price_status = $3, updated_at = NOW()
-         WHERE id = $4`,
+         SET price_lock_id = $1, locked_unit_price = $2, current_unit_price = $3,
+             price_status = $4, updated_at = NOW()
+         WHERE id = $5`,
         [newLock.rows[0].id, increased ? item.locked_unit_price : current.toFixed(2),
+          current.toFixed(2),
           increased ? "PRICE_INCREASED_PENDING" : (current.lessThan(locked) ? "PRICE_DECREASED" : "LOCKED"),
           item.cart_item_id]
       );

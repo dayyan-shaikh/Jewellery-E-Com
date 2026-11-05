@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowDown, ArrowUpRight, Sparkles } from 'lucide-react'
 import ProductCard from '../components/ProductCard'
+import MarketRates from '../components/MarketRates'
 import { useStore } from '../store/Store'
 
 export default function Home() {
@@ -22,6 +23,7 @@ export default function Home() {
       <div className="hero-scroll"><ArrowDown size={14}/> SCROLL TO DISCOVER</div>
     </section>
     <section className="intro-strip"><span>01 — A MORE PERSONAL KIND OF LUXURY</span><p>Made to mark a moment.<br/><em>Made to outlast it.</em></p><span>CRAFTED WITH INTENTION</span></section>
+    <MarketRates/>
     <section className="collection-section" id="collection">
       <div className="section-heading"><div><span className="eyebrow">THE COLLECTION · 2026</span><h2>Pieces with <em>presence.</em></h2></div><p>Every detail has a purpose.<br/>Every piece, a point of view.</p></div>
       {error && <div className="notice notice-error">{error}</div>}

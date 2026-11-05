@@ -13,6 +13,13 @@ export default function Cart() {
   const [, setClock] = useState(0)
   const navigate = useNavigate()
   useEffect(() => { void reloadCart().catch(e => setError(e instanceof Error ? e.message : 'Unable to refresh cart')) }, [reloadCart])
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (!cart.length || document.visibilityState !== 'visible') return
+      void reloadCart().catch(e => setError(e instanceof Error ? e.message : 'Unable to refresh cart'))
+    }, 15000)
+    return () => window.clearInterval(timer)
+  }, [cart.length, reloadCart])
   useEffect(() => { const timer = window.setInterval(() => setClock(Date.now()), 1000); return () => window.clearInterval(timer) }, [])
   const total = cart.reduce((sum, item) => sum + item.quote.total * item.quantity, 0)
   const pending = cart.filter(item => item.status === 'AWAITING_CONFIRMATION').length

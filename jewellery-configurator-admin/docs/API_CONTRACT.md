@@ -11,11 +11,9 @@ All `/admin/*` endpoints require `Authorization: Bearer <JWT>` for an admin user
 - `POST /admin/products` creates one product and one or more variants in a transaction.
 - `PUT /admin/products/:id` updates schema-backed product and variant fields in a transaction.
 - `GET /admin/metal-rates` returns each metal/purity rate row.
-- `POST /admin/metal-rates` adds a unique metal/purity rate row.
-- `PATCH /admin/metal-rates/:id` updates a rate and marks its source as `ADMIN`.
 - `GET /admin/orders` returns read-only orders and their stored order items.
 
-Product writes map to `products` (`name`, `description`, `metal_type`, `wastage_percentage`, `making_charge_per_gram`, `has_stones`, `is_active`) and `product_variants` (`sku`, `purity`, `weight_grams`, `stone_charge`, `stock_quantity`, `is_active`). A variant can only be saved when a matching `(metal_type, purity)` rate exists. Updating product or rate data affects future storefront reads and quotes; existing price locks retain their stored price snapshot.
+Product writes map to `products` (`name`, `description`, `metal_type`, `wastage_percentage`, `making_charge_per_gram`, `has_stones`, `is_active`) and `product_variants` (`sku`, `purity`, `weight_grams`, `stone_charge`, `stock_quantity`, `is_active`). A variant can only be saved when a matching `(metal_type, purity)` rate exists. Product changes affect future storefront reads and quotes. Metal rates are read-only in admin and are updated by the GoldAPI service; existing price locks retain their stored price snapshot.
 
 The schema has no product category, image URL, or separate making-charge-rule table, so those fields are not presented as editable database values.
 
@@ -129,7 +127,6 @@ The admin frontend adapter uses the following proposed endpoints when `VITE_USE_
 - `POST /admin/products`
 - `PUT /admin/products/:id`
 - `GET /admin/metal-rates`
-- `PATCH /admin/metal-rates/:metal`
 - `GET /admin/making-charge-rules`
 - `POST /admin/making-charge-rules`
 - `PUT /admin/making-charge-rules/:id`

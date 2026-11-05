@@ -17,6 +17,7 @@ const checkoutRoutes = require("./routes/checkoutRoutes");
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const { jwtSecret } = require("./services/authService");
+const { startMetalRateScheduler } = require("./services/metalRateService");
 
 const app = express();
 
@@ -62,6 +63,7 @@ const startServer = async () => {
   try {
     jwtSecret();
     await connectDB();
+    startMetalRateScheduler();
 
     const PORT = process.env.PORT || 5000;
 

@@ -171,41 +171,6 @@ async function getAdminRates() {
   return result.rows.map((row) => ({ id: String(row.id), metalType: row.metal_type, purity: row.purity, ratePerGram: Number(row.rate_per_gram), currency: row.currency, source: row.source, updatedAt: row.updated_at }));
 }
 
-async function createMetalRate(input) {
-  const metalType = String(input?.metalType ?? input?.metal_type ?? "").trim().toUpperCase();
-  if (!METALS.has(metalType)) throw invalid("Metal must be Gold, Silver, or Platinum");
-  const purity = text(input.purity, "Purity", 10, true);
-  const rate = numeric(input.ratePerGram, "Rate per gram", { min: 0.01 });
-  const currency = input.currency == null ? "INR" : text(input.currency, "Currency", 3, true).toUpperCase();
-  if (!/^[A-Z]{3}$/.test(currency)) throw invalid("Currency must be a three-letter code");
-  try {
-    const result = await pool.query(
-      `INSERT INTO metal_rates (metal_type, purity, rate_per_gram, currency, source)
-       VALUES ($1,$2,$3,$4,'ADMIN')
-       RETURNING id, metal_type, purity, rate_per_gram, currency, source, updated_at`,
-      [metalType, purity, rate, currency]
-    );
-    const row = result.rows[0];
-    return { id: String(row.id), metalType: row.metal_type, purity: row.purity, ratePerGram: Number(row.rate_per_gram), currency: row.currency, source: row.source, updatedAt: row.updated_at };
-  } catch (error) {
-    if (error.code === "23505") throw invalid("A rate already exists for this metal and purity", 409);
-    throw error;
-  }
-}
-
-async function updateMetalRate(id, ratePerGram) {
-  const rateId = numeric(id, "Rate id", { min: 1, max: Number.MAX_SAFE_INTEGER, integer: true });
-  const rate = numeric(ratePerGram, "Rate per gram", { min: 0.01 });
-  const result = await pool.query(
-    `UPDATE metal_rates SET rate_per_gram=$2, source='ADMIN', updated_at=NOW()
-     WHERE id=$1 RETURNING id, metal_type, purity, rate_per_gram, currency, source, updated_at`,
-    [rateId, rate]
-  );
-  if (!result.rowCount) throw invalid("Metal rate was not found", 404);
-  const row = result.rows[0];
-  return { id: String(row.id), metalType: row.metal_type, purity: row.purity, ratePerGram: Number(row.rate_per_gram), currency: row.currency, source: row.source, updatedAt: row.updated_at };
-}
-
 async function getAdminOrders() {
   const result = await pool.query(`
     SELECT o.id, o.total_amount, o.status, o.created_at,
@@ -231,4 +196,4 @@ async function getDashboardSummary() {
   return { products: products.rows[0], variants: variants.rows[0], rates: rates.rows[0], orders: orders.rows[0] };
 }
 
-module.exports = { createMetalRate, createProduct, getAdminOrders, getAdminProduct, getAdminProducts, getAdminRates, getDashboardSummary, updateMetalRate, updateProduct };
+module.exports = { createProduct, getAdminOrders, getAdminProduct, getAdminProducts, getAdminRates, getDashboardSummary, updateProduct };

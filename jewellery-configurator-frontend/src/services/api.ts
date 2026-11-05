@@ -27,6 +27,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 type ProductRow = { id: number | string; name: string; description?: string; metal_type: string; wastage_percentage: number | string; making_charge_per_gram: number | string; variant_id: number | string | null; sku?: string; purity?: string; weight_grams?: number | string; stone_charge?: number | string; stock_quantity?: number }
+export type PublicMetalRate = { id: number | string; metal_type: 'GOLD' | 'SILVER' | 'PLATINUM'; purity: string; rate_per_gram: string | number; currency: string; source: string; updated_at: string }
 const productImages = [
   'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=1000&q=85',
   'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=1000&q=85',
@@ -63,6 +64,7 @@ type CartResponse = { items: Array<{ id: number; productVariantId: number; price
 
 export const api = {
   products: async () => normalizeProducts((await request<{ products: ProductRow[] }>('/products')).products || []),
+  metalRates: async () => (await request<{ rates: PublicMetalRate[] }>('/metal-rates')).rates || [],
   product: async (id: string) => {
     const raw = (await request<{ product: ProductRow & { variants: Array<{ id: number; sku: string; purity: string; weight_grams: string; stone_charge: string; stock_quantity: number }> } }>(`/products/${id}`)).product
     const p = raw

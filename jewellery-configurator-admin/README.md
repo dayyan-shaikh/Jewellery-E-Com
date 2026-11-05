@@ -78,7 +78,7 @@ The admin interface follows the Maison Aurelia storefront design system (ivory s
 - Overview dashboard with live product, stock, rate and order totals.
 - Product editing for schema-backed name, description, metal, wastage, making charge, stone flag, active status and variants.
 - Inventory editing for real variant stock, purity, weight and stone charges.
-- Metal-rate editing by metal and purity.
+- View and sync live metal rates from GoldAPI (read-only).
 - Read-only order register from `orders` and `order_items`.
 - Responsive desktop and mobile navigation.
 
@@ -92,12 +92,10 @@ The admin API adapter in `src/services/adminApi.ts` uses these authenticated end
 | POST | `/admin/products` | Create a product |
 | PUT | `/admin/products/:id` | Update product fields and variants |
 | GET | `/admin/metal-rates` | Read metal rates |
-| POST | `/admin/metal-rates` | Add a metal/purity rate row |
-| PATCH | `/admin/metal-rates/:id` | Update one metal-and-purity rate row |
 | GET | `/admin/orders` | List orders |
 | GET | `/admin/summary` | Read dashboard totals |
 
-There is no `category`, `image`, or making-charge-rules table in the supplied database schema, so the admin does not invent or persist those values. Making charges are edited on the product record, and rate rows are edited by purity. Product changes and metal-rate updates feed the existing public product and price-calculation endpoints; active price locks retain their stored snapshot.
+There is no `category`, `image`, or making-charge-rules table in the supplied database schema, so the admin does not invent or persist those values. Making charges are edited on the product record. Product changes feed the existing storefront endpoints; GoldAPI owns metal rate updates and the admin can only view or sync them.
 
 ### Authentication
 
