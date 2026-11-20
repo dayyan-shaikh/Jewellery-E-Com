@@ -1,5 +1,6 @@
 
 const { pool } = require("../config/db");
+const { PRICE_LOCK_DURATION_MINUTES } = require("../config/priceLock");
 const Decimal = require("decimal.js");
 
 const {
@@ -242,7 +243,7 @@ const revalidateCart = async (sessionId) => {
            metal_cost, wastage_amount, making_charge, stone_charge, subtotal,
            gst_amount, total_price, locked_at, expires_at, status
          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
-                   NOW(), NOW() + INTERVAL '10 minutes', $12)
+                   NOW(), NOW() + make_interval(mins => ${PRICE_LOCK_DURATION_MINUTES}), $12)
          RETURNING id`,
         [sessionId, item.product_variant_id, breakdown.metal_rate_id,
           breakdown.rate_per_gram, breakdown.metal_cost, breakdown.wastage_amount,
@@ -474,7 +475,7 @@ const confirmCartItemPrice = async (sessionId, cartItemId) => {
       throw new Error("PRICE_CHANGED_RETRY");
     }
 
-    // Create a new 10-minute confirmed price lock
+    // Create a new confirmed price lock
     const lockResult = await client.query(
       `INSERT INTO price_locks (
         session_id,
@@ -496,7 +497,7 @@ const confirmCartItemPrice = async (sessionId, cartItemId) => {
       VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
         NOW(),
-        NOW() + INTERVAL '10 minutes',
+        NOW() + make_interval(mins => ${PRICE_LOCK_DURATION_MINUTES}),
         'ACTIVE',
         NOW()
       )
@@ -548,7 +549,7 @@ const confirmCartItemPrice = async (sessionId, cartItemId) => {
     return {
       item: updatedItemResult.rows[0],
       lock: newLock,
-      message: "New price accepted. Price locked for 10 minutes."
+      message: "New price accepted."
     };
 
   } catch (error) {

@@ -10,7 +10,7 @@ A live-rate **jewellery e-commerce application** built with **React, TypeScript,
 - Customer registration and sign-in
 - Browse products and select purity and weight variants
 - Live price breakdown: metal value, wastage, making charge, stone charge, and 3% GST
-- Independent ten-minute quote and countdown for each cart item
+- Independent configurable quote and countdown for each cart item (ten minutes by default)
 - Automatic lower-price updates; customer approval required for higher prices after quote expiry
 - Stock availability, cart quantity updates, and item removal
 - Checkout validation and order confirmation
@@ -103,6 +103,8 @@ psql -U postgres -d jewellery_configurator -f backend/database/migrations/2026-1
 ```
 
 For a new database, the main schema already includes the rate-history table and precision update. Add your GoldAPI key to `GOLD_API_KEY` in the backend local environment file; set `GOLD_RATE_FETCH_INTERVAL_MINUTES` there to choose the schedule. The default is once per day (three provider requests per run).
+
+`PRICE_LOCK_DURATION_MINUTES` controls quote duration. It defaults to ten minutes; the local environment is set to one minute for the current test.
 
 ### 6. Start the admin portal
 

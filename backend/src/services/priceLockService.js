@@ -1,4 +1,5 @@
 const { pool } = require("../config/db");
+const { PRICE_LOCK_DURATION_MINUTES } = require("../config/priceLock");
 const Decimal = require("decimal.js");
 const {
   calculateProductPrice,
@@ -33,7 +34,7 @@ const createPriceLock = async (sessionId, variantId) => {
     VALUES (
       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
       NOW(),
-      NOW() + INTERVAL '10 minutes',
+      NOW() + make_interval(mins => ${PRICE_LOCK_DURATION_MINUTES}),
       'ACTIVE'
     )
     RETURNING *;
@@ -204,7 +205,7 @@ const refreshPriceLock = async (lockId, sessionId) => {
       VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
         NOW(),
-        NOW() + INTERVAL '10 minutes',
+        NOW() + make_interval(mins => ${PRICE_LOCK_DURATION_MINUTES}),
         $12
       )
       RETURNING *`,

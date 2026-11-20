@@ -79,7 +79,7 @@ export default function ProductDetail() {
         </div>
         {message && <div className={`notice ${message.startsWith('Added') ? 'notice-success' : 'notice-error'}`}>{message}</div>}
         <div className="detail-actions"><button className="button button-dark button-wide" disabled={!quote || busy || !selectedVariant || selectedVariant.stock < 1} onClick={() => handleAction('cart')}>{busy && action === 'cart' ? 'LOCKING PRICE…' : quote?.expiresAt ? 'ADD TO BAG' : 'LOCK PRICE & ADD TO BAG'} <ArrowUpRight size={16}/></button><button className="button button-outline button-wide" disabled={!quote || busy || !selectedVariant || selectedVariant.stock < 1} onClick={() => handleAction('buy')}>{busy && action === 'buy' ? 'LOCKING PRICE…' : 'BUY NOW'}</button></div>
-        <div className="service-promises"><span><ShieldCheck size={16}/> Secure price lock for 10 minutes</span><span><Truck size={16}/> Insured delivery across India</span></div>
+        <div className="service-promises"><span><ShieldCheck size={16}/> Secure price lock · see countdown above</span><span><Truck size={16}/> Insured delivery across India</span></div>
         <p className="stock-note">{selectedVariant?.stock ? `${selectedVariant.stock} available for this purity and weight` : 'This configuration is currently unavailable'}</p>
       </div>
     </div>
